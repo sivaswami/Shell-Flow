@@ -3,41 +3,72 @@ import sys
 import re
 import collections
 from graphviz import Digraph
-from nltk.tokenize import sent_tokenize,RegexpTokenizer
-from nltk.tokenize.util import regexp_span_tokenize
-from nltk import ngrams, FreqDist
-from nltk.collocations import *
 
-def BashTokenize(stmt):
-    bigrams=dict()
-    tokenizer = RegexpTokenizer("[;]", gaps=True)
-    tokenizedLine =  tokenizer.tokenize(stmt)
-    print(tokenizedLine)
-    #for size in 1,2,3,4,5:
-    #   bigrams[size] = FreqDist(ngrams(tokenizedLine,size))
-    #print(bigrams[1].most_common(5))
-#BashTokenize("export HOST_MACHINE=$(hostname -s)")
-#BashTokenize('DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" && pwd  )"')
+from pyparsing import *
+
 # Parsing based on Bash Grammar provided in link : http://wiki.bash-hackers.org/syntax/basicgrammar
 
-def BashTokenize(stmt):
-    bigrams=dict()
-    tokenizer = RegexpTokenizer("[;]", gaps=True)
-    tokenizedLine =  tokenizer.tokenize(stmt)
-    print(tokenizedLine)
+shellbuiltInWords="alias,bg,bind,break,builtin,caller,cd,command,compgen,complete,compopt,continue,declare,dirs,disown,echo,enable,eval,exec,exit,export,false,fc,fg,getopts,hash,help,history,jobs,kill,let,local,logout,mapfile,popd,printf,pushd,pwd,read,readarray,readonly,return,set,shift,shopt,source,suspend,test,times,trap,true,type,typeset,ulimit,umask,unalias,unset,wait"
+usualCommands="mkdir,rmdir,rm -rf,ls,ps,tree,find,grep,egrep,sed,awk,ifconfig,ping,rm,du,df,less,more,test"
+complexWords="for,if,else,elif,fi,do,done,while,{,},((,)),[[,]],case,esac,until,select"
+compound="(),{},(()),[[  ]],((  ))"
+pipes=oneOf("> >> 2>&1 | &")
+importCommands=oneOf("exec ` $( source")
+BashIdentifier=Word(alphanums + "_-/$")	
+BashNumber=Word(nums+".")
+BashFlag=oneOrMore("-") + oneOrMore(alphanums)
+
+def parseAssignmentStatement(stmt):
+	assignmentCommands=oneOf("export alias let local")
+	assignmentExpr = ZeroOrMore(assignmentCommands) + BashIdentifier.setResultsName("lhs") + "=" + (BashIdentifier|BashNumber).setResultsName("rhs")
+	try:
+		tokens = assignmentExpr.parseString(stmt)
+		return tokens.lhs
+	except ParseException:
+		return ""
+	
+def parseCommandStatement(stmt):
+	assignmentCommands=oneOf("set cd bg fg pushd popd ulimit ls")
+	assignmentExpr = oneOrMore(assignmentCommands).setResultsName("lhs") + BashFlag + (BashIdentifier).setResultsName("rhs")
+	try:
+		tokens = assignmentExpr.parseString(stmt)
+		return tokens.lhs + tokens.rhs
+	except ParseException:
+		return ""
+
+def parseInlineComments(stmt):
+	assignmentCommands=oneOf("#")
+	assignmentExpr = oneOrMore(assignmentCommands).setResultsName("lhs") + BashFlag + (BashIdentifier).setResultsName("rhs")
+	try:
+		tokens = assignmentExpr.parseString(stmt)
+		return tokens.lhs + tokens.rhs
+	except ParseException:
+		return ""
+
+# def BashTokenize(stmt):
+#     bigrams=dict()
+#     tokenizer = RegexpTokenizer("[;]", gaps=True)
+#     tokenizedLine =  tokenizer.tokenize(stmt)
+#     print(tokenizedLine)
     #for size in 1,2,3,4,5:
     #   bigrams[size] = FreqDist(ngrams(tokenizedLine,size))
     #print(bigrams[1].most_common(5))
 #BashTokenize("export HOST_MACHINE=$(hostname -s)")
 #BashTokenize('DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" && pwd  )"')
 
+
+# def BashTokenize(stmt):
+#     bigrams=dict()
+#     tokenizer = RegexpTokenizer("[;]", gaps=True)
+#     tokenizedLine =  tokenizer.tokenize(stmt)
+#     print(tokenizedLine)
+#     #for size in 1,2,3,4,5:
+#     #   bigrams[size] = FreqDist(ngrams(tokenizedLine,size))
+#     #print(bigrams[1].most_common(5))
+# #BashTokenize("export HOST_MACHINE=$(hostname -s)")
+# #BashTokenize('DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" && pwd  )"')
+
 class BashParser:
-	shellbuiltInWords="alias,bg,bind,break,builtin,caller,cd,command,compgen,complete,compopt,continue,declare,dirs,disown,echo,enable,eval,exec,exit,export,false,fc,fg,getopts,hash,help,history,jobs,kill,let,local,logout,mapfile,popd,printf,pushd,pwd,read,readarray,readonly,return,set,shift,shopt,source,suspend,test,times,trap,true,type,typeset,ulimit,umask,unalias,unset,wait"
-	usualCommands="mkdir,rmdir,rm -rf,ls,ps,tree,find,grep,egrep,sed,awk,ifconfig,ping,rm,du,df,less,more,test"
-	complexWords="for,if,else,elif,fi,do,done,while,{,},((,)),[[,]],case,esac,until,select"
-	compound="(),{},(()),[[  ]],((  ))"
-	pipes=">,>>,2>&1,|,&,||,;"
-	
 	def __init__(self):
 		self.line=""
 	def parse(self, cmdString):
@@ -240,8 +271,7 @@ if __name__ == "__main__":
 				#	precmd=cmd
 				#	print("[*] " + line.strip() + "=>" + cmds.cmds[0])
 	dot.render("siva.gv", view=True)
-		
-		#if not line.trim().startswith(pattern) for pattern in builtInWords
+
 		
 
 
