@@ -3,8 +3,33 @@ import sys
 import re
 import collections
 from graphviz import Digraph
+from nltk.tokenize import sent_tokenize,RegexpTokenizer
+from nltk.tokenize.util import regexp_span_tokenize
+from nltk import ngrams, FreqDist
+from nltk.collocations import *
 
+def BashTokenize(stmt):
+    bigrams=dict()
+    tokenizer = RegexpTokenizer("[;]", gaps=True)
+    tokenizedLine =  tokenizer.tokenize(stmt)
+    print(tokenizedLine)
+    #for size in 1,2,3,4,5:
+    #   bigrams[size] = FreqDist(ngrams(tokenizedLine,size))
+    #print(bigrams[1].most_common(5))
+#BashTokenize("export HOST_MACHINE=$(hostname -s)")
+#BashTokenize('DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" && pwd  )"')
 # Parsing based on Bash Grammar provided in link : http://wiki.bash-hackers.org/syntax/basicgrammar
+
+def BashTokenize(stmt):
+    bigrams=dict()
+    tokenizer = RegexpTokenizer("[;]", gaps=True)
+    tokenizedLine =  tokenizer.tokenize(stmt)
+    print(tokenizedLine)
+    #for size in 1,2,3,4,5:
+    #   bigrams[size] = FreqDist(ngrams(tokenizedLine,size))
+    #print(bigrams[1].most_common(5))
+#BashTokenize("export HOST_MACHINE=$(hostname -s)")
+#BashTokenize('DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" && pwd  )"')
 
 class BashParser:
 	shellbuiltInWords="alias,bg,bind,break,builtin,caller,cd,command,compgen,complete,compopt,continue,declare,dirs,disown,echo,enable,eval,exec,exit,export,false,fc,fg,getopts,hash,help,history,jobs,kill,let,local,logout,mapfile,popd,printf,pushd,pwd,read,readarray,readonly,return,set,shift,shopt,source,suspend,test,times,trap,true,type,typeset,ulimit,umask,unalias,unset,wait"
