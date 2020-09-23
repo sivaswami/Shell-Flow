@@ -3,7 +3,6 @@ import sys
 import re
 import collections
 from graphviz import Digraph
-
 from pyparsing import *
 
 # Parsing based on Bash Grammar provided in link : http://wiki.bash-hackers.org/syntax/basicgrammar
@@ -25,7 +24,8 @@ BashRedirect=oneOf("> >> ") + BashArgument[1,...] # TODO:2>&1
 BashComment=Word("#", alphanums + "-_/$")
 #BashCommand=Word(alphanums + "_").setResultsName("command") + BashPath[...]
 BashFlag=Combine(OneOrMore("-") + OneOrMore(alphanums))
-BashSimpleCommand=BashIdentifier.setResultsName("command") + BashFlag[...] + BashPath[...] + BashIdentifier[...] +  BashRedirect[...]  
+BashSimpleCommand=BashIdentifier.setResultsName("command") + BashFlag[...] + BashPath[...] + BashIdentifier[...] +  BashRedirect[...] 
+BashCompoundCommand = BashSimpleCommand + (oneOf("&& & || | ;") + BashSimpleCommand)[1,...] 
 
 
 def parseAssignmentStatement(stmt):
@@ -37,9 +37,17 @@ def parseAssignmentStatement(stmt):
 	except ParseException:
 		return ""
 	
+#https://wiki.bash-hackers.org/syntax/grammar/parser_exec - Bash simple command definition
 def parseSimpleCommand(stmt):
 	try:
 		tokens = BashSimpleCommand.parseString(stmt)
+		return tokens.command
+	except ParseException:
+		return ""
+
+def parseCompoundCommand(stmt):
+	try:
+		tokens = BashCompoundCommand.parseString(stmt)
 		return tokens.command
 	except ParseException:
 		return ""
