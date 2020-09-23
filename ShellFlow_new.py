@@ -15,8 +15,18 @@ compound="(),{},(()),[[  ]],((  ))"
 pipes=oneOf("> >> 2>&1 | &")
 importCommands=oneOf("exec ` $( source")
 BashIdentifier=Word(alphanums + "_-/$")	
+BashQuote=oneOf("\' \"")
 BashNumber=Word(nums+".")
-BashFlag=oneOrMore("-") + oneOrMore(alphanums)
+BashString=BashQuote + BashIdentifier + BashQuote
+BashPath=BashQuote + Combine(Word(alphanums + " _.-/") | ".." | "." | "\*") + BashQuote # TODO:*
+BashFlag=OneOrMore("-") + OneOrMore(alphanums)
+BashArgument= BashFlag[...] + BashPath[...] + BashIdentifier[...] 
+BashRedirect=oneOf("> >> ") + BashArgument[1,...] # TODO:2>&1
+BashComment=Word("#", alphanums + "-_/$")
+#BashCommand=Word(alphanums + "_").setResultsName("command") + BashPath[...]
+BashFlag=Combine(OneOrMore("-") + OneOrMore(alphanums))
+BashSimpleCommand=BashIdentifier.setResultsName("command") + BashFlag[...] + BashPath[...] + BashIdentifier[...] +  BashRedirect[...]  
+
 
 def parseAssignmentStatement(stmt):
 	assignmentCommands=oneOf("export alias let local")
@@ -27,9 +37,16 @@ def parseAssignmentStatement(stmt):
 	except ParseException:
 		return ""
 	
+def parseSimpleCommand(stmt):
+	try:
+		tokens = BashSimpleCommand.parseString(stmt)
+		return tokens.command
+	except ParseException:
+		return ""
+
 def parseCommandStatement(stmt):
 	assignmentCommands=oneOf("set cd bg fg pushd popd ulimit ls")
-	assignmentExpr = oneOrMore(assignmentCommands).setResultsName("lhs") + BashFlag + (BashIdentifier).setResultsName("rhs")
+	assignmentExpr = OneOrMore(assignmentCommands).setResultsName("lhs") + BashFlag[...] + (BashIdentifier).setResultsName("rhs")
 	try:
 		tokens = assignmentExpr.parseString(stmt)
 		return tokens.lhs + tokens.rhs
@@ -38,7 +55,7 @@ def parseCommandStatement(stmt):
 
 def parseInlineComments(stmt):
 	assignmentCommands=oneOf("#")
-	assignmentExpr = oneOrMore(assignmentCommands).setResultsName("lhs") + BashFlag + (BashIdentifier).setResultsName("rhs")
+	assignmentExpr = OneOrMore(assignmentCommands).setResultsName("lhs") + BashFlag + (BashIdentifier).setResultsName("rhs")
 	try:
 		tokens = assignmentExpr.parseString(stmt)
 		return tokens.lhs + tokens.rhs
